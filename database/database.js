@@ -10,7 +10,8 @@ const connection = new Sequelize(
     process.env.DB_PASS,            //                                           
     {
         host: process.env.DB_HOST,  // endereço (banco local)
-        dialect: 'mysql'            // banco utilizado
+        dialect: 'mysql',            // banco utilizado
+        
     }
 );
 
