@@ -14,6 +14,28 @@ const Cliente = require("./database/cliente");  // Configurar o model da aplica�
 const Endereco = require("./database/endereco");
 
 // Definição de rotas
+// listar todos os clientes
+app.get("/clientes", async (req, res) => {
+    // SELECT * FROM clientes;
+    const listClientes = await Cliente.findAll(); // array de objs
+    res.json(listClientes);
+});
+
+// buscar cliente por id -> clientes/3
+app.get("/clientes/:id", async (req, res) => {
+    // equiv a SELECT * FROM clientes where id=3;
+    const cliente = await Cliente.findOne({
+        where: {id: req.params.id},         // busca pelo id 
+        include: [Endereco],                // pra trazer junto os dados de endereco
+    }); 
+
+        if(cliente) {
+            res.json(cliente);
+        } else {
+            res.status(404).json({message: "Usuario nao encontrado."})
+        }
+});
+
     // 1. inserção dos clientes
 app.post("/clientes", async (req, res) => {
     // 1.1. coletar informacoes do req.body
