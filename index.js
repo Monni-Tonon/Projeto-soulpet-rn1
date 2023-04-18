@@ -52,6 +52,50 @@ app.post("/clientes", async (req, res) => {
     }    
 });
 
+// 2.PUT (/clientes) => atualizar cliente existente
+app.put("/clientes/:id", async (req, res) => {
+    const { nome, email, telefone, endereco } = req.body;
+    const { id } = req.params; 
+
+    try {
+        const cliente = await Cliente.findOne({ where: { id } }) 
+        if(cliente) {
+            // 2.1. checa a atualizacao do endereço
+            if(endereco) {
+                //2.1.1. qd o clienteId de Endereco for = id do cliente fornecido em /clientes/:id
+                await Endereco.update(endereco, { where: { clienteId: id }});
+            }
+            // dps de verificar se tem endereco, verifica se ha atualizacao nas demais informacoes
+            await cliente.update( { nome, email, telefone } ); //, { where: { id } } ); << esse where eu coloco se for usar o Cliente com "C".
+            // resposta e qual cliente editado
+            res.status(200).json({message: "Cliente editado."});
+        } else {
+            //resposta se nao encontrar o cliente
+            res.status(404).json({message: "Cliente nao encontrado."});
+        }
+    } catch (err) {
+        // não consegue consultar o bd por algum motivo
+        res.status(500).json({message: "Um erro aconteceu."});
+    }  
+});
+
+// 3. DEL (/clientes/) => deletar o cliente
+app.delete("/clientes/:id", async (req, res) => {
+    const { id } = req.params;
+    const cliente = await Cliente.findOne({where: {id}});
+try  {
+    if(cliente) {
+        await cliente.destroy();
+        res.status(200).json({message: "Cliente removido."})
+    } else {
+        res.status(404).json({message: "Cliente nao encontrado."});
+    }
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({message: "Um erro aconteceu."});
+  }
+});
+
 // Escuta de eventos (listen)
 app.listen(3000, () => {
     connection.sync({force: true})  // gera as tabelas a partir do model. Force = apaga tudo e recria as tabelas
