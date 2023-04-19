@@ -12,3 +12,15 @@ ORM => Object - relational mapper
 // POST (/clientes) => Inserir cliente novo
 // PUT (/clientes) => Atualizar cliente existente
 // DELETE (/clientes) => Apagar cliente existente
+U => UPDATE
+	* checar se existe primeiro
+	* checar se as relações existem também
+
+C => CREATE
+	* checar a validade dos dados
+
+D => DELETE
+	* checar se existe primeiro
+
+R => READ
+	* nenhum requisito

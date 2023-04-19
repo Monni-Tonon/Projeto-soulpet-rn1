@@ -12,8 +12,12 @@ const {connection, authenticate} = require("./database/database");
 authenticate(connection);   // efetivar a conexao
 const Cliente = require("./database/cliente");  // Configurar o model da aplicação
 const Endereco = require("./database/endereco");
+const Pet = require("./database/pet");
+
 
 // Definição de rotas
+
+// ============================ CRUD CLIENTES INICIO ====================================
 // listar todos os clientes
 app.get("/clientes", async (req, res) => {
     // SELECT * FROM clientes;
@@ -36,7 +40,7 @@ app.get("/clientes/:id", async (req, res) => {
         }
 });
 
-    // 1. inserção dos clientes
+// 1. inserção dos clientes
 app.post("/clientes", async (req, res) => {
     // 1.1. coletar informacoes do req.body
     const { nome, email, telefone, endereco } = req.body; // espero receber na insercao do body essas infos
@@ -82,23 +86,100 @@ app.put("/clientes/:id", async (req, res) => {
 // 3. DEL (/clientes/) => deletar o cliente
 app.delete("/clientes/:id", async (req, res) => {
     const { id } = req.params;
-    const cliente = await Cliente.findOne({where: {id}});
-try  {
-    if(cliente) {
-        await cliente.destroy();
-        res.status(200).json({message: "Cliente removido."})
-    } else {
-        res.status(404).json({message: "Cliente nao encontrado."});
+    try  {
+        const cliente = await Cliente.findOne({where: {id}});
+        if(cliente) {
+            await Endereco.destroy({ where: {clienteId: id} })
+            await cliente.destroy();
+            res.status(200).json({message: "Cliente removido."})
+        } else {
+            res.status(404).json({message: "Cliente nao encontrado."});
+        }
+    } catch(err) {
+        console.error(err);
+        res.status(500).json({message: "Um erro aconteceu."});
     }
-  } catch(err) {
-    console.error(err);
-    res.status(500).json({message: "Um erro aconteceu."});
-  }
 });
+// ============================ CRUD CLIENTES FIM ====================================
+// ============================ CRUD PETS INICIO ====================================
+// GET (/pets) => Listagem de todos os pets
+app.get("/pets", async(req,res)=>{
+    const listaPets = await Pet.findAll();
+    res.json(listaPets);
+});
+app.get("/pets/:id", async (req, res)=>{
+    const pet = await Pet.findOne({ //findOne busca somente 1 resgitro
+        where: {id: req.params.id}}); 
+    if(pet){
+        res.json(pet);
+    }else{
+        res.status(404).json({message: "Pet não encontrado!"})
+    }
+});
+
+// POST (/pets) => inserindo pet novo
+app.post("/pets", async (req, res) => {
+    const { nome, raca, porte, dtNasc, clienteId } = req.body;
+    console.log(nome, raca, porte, dtNasc, clienteId);
+    try {
+        //verificar se o cliente existe para vincular o pet
+        const cliente = await Cliente.findByPk(clienteId);
+        if(cliente) {   //se existe, cria o registro do pet
+            const novoPet = await Pet.create({nome, raca, porte, dtNasc, clienteId});
+                res.status(201).json(novoPet);
+                    } 
+                    else {
+                        res.status(404).json({message: "Cliente nao encontrado."});
+                        }   
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({message: "Um erro ocorreu ao incluir pet."})
+                }
+});
+
+// PUT (/pets) => atualizar dados do pet. regra: nao é possivel trocar dono
+app.put("/pets/:id", async (req, res) => {
+    //dados que virao no corpo do json
+    const { nome, raca, porte, dtNasc } = req.body;
+    //checar a existencia do pet no sistema (select * from pets where id= req.params.id)
+    const pet = await Pet.findByPk(req.params.id);
+    
+    //se pet é null, nao existe o pet com o id
+    try {
+        if(pet) {
+            //atualiza
+            //IMPORTANTE indicar qual pet atualizar!! COLOCAR A CONDIÇÃO where
+            // 1º argumento: dados novos, 2º argumento: where(condicao de busca: id)
+            await Pet.update({nome, raca, porte, dtNasc}, {where: {id: req.params.id}});
+            res.json({message: "Pet atualizado."});
+        } else {
+            //retorna 404, caso id invalido
+            res.status(404).json({message: "Pet não encontrado."})
+        }
+    } catch(err) {
+        //retorna 500, caso erro inesperado
+        console.log(err);
+        res.status(500).json({message: "Um erro aconteceu ao tentar conectar com o servidor."})
+    }
+});
+
+// DELETE (/pets => apagar registro do pet)
+app.delete("/pets/:id", async (req, res) => {
+    // checar se o pet existe antes de apagar
+    const pet = await Pet.findByPk(req.params.id);
+
+    if(pet) {       // se existe, pode apagar
+        await pet.destroy();
+        res.json({message: "Pet removido."})
+    } else {
+        res.status(404).json({message: "Pet nao encontrado."})
+    }
+});
+// ============================ CRUD PETS FIM ====================================
 
 // Escuta de eventos (listen)
 app.listen(3000, () => {
-    connection.sync({force: true})  // gera as tabelas a partir do model. Force = apaga tudo e recria as tabelas
+    connection.sync()   //({force: true}) => gera as tabelas a partir do model. Force = apaga tudo e recria as tabelas
     console.log("Servidor rodando em http://localhost:3000")
 });
 
